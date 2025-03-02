@@ -1,0 +1,14 @@
+/* 用于在8090端口下隐藏注册表单的样式 */
+/* 更精确的选择器，只针对注册表单 */
+body[data-port="8090"] .card-title:contains("用户注册"),
+body[data-port="8090"] #registration-form,
+body[data-port="8090"] .register-container,
+body[data-port="8090"] .register-button-container {
+  display: none !important;
+}
+
+/* 确保登录表单正常显示 */
+body[data-port="8090"] .login-container {
+  display: block !important;
+  margin: 0 auto;
+} 
