@@ -1,183 +1,69 @@
 <template>
-  <div class="notification-container">
-    <transition-group name="toast">
-      <div 
-        v-for="notification in notifications" 
+  <div class="notifications-container">
+    <transition-group name="notification">
+      <div
+        v-for="notification in notifications"
         :key="notification.id"
-        :class="['notification-toast', `notification-${notification.type}`]"
+        :class="['notification', notification.type]"
         v-show="notification.show"
       >
-        <div class="notification-icon">
-          <i :class="getIconClass(notification.type)"></i>
-        </div>
-        <div class="notification-content">
-          <div class="notification-message">{{ notification.message }}</div>
-        </div>
-        <button class="notification-close" @click="closeNotification(notification.id)">
-          <i class="fas fa-times"></i>
-        </button>
+        {{ notification.message }}
       </div>
     </transition-group>
   </div>
 </template>
 
 <script setup>
-import { useNotifications, closeNotification, NotificationType } from '../services/notificationService';
+import { useNotifications } from '@/services/notificationService'
 
-// 获取通知列表
-const { notifications } = useNotifications();
-
-// 根据通知类型获取对应图标
-function getIconClass(type) {
-  switch (type) {
-    case NotificationType.SUCCESS:
-      return 'fas fa-check-circle';
-    case NotificationType.ERROR:
-      return 'fas fa-exclamation-circle';
-    case NotificationType.WARNING:
-      return 'fas fa-exclamation-triangle';
-    case NotificationType.INFO:
-    default:
-      return 'fas fa-info-circle';
-  }
-}
+const { notifications } = useNotifications()
 </script>
 
 <style scoped>
-.notification-container {
+.notifications-container {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   pointer-events: none;
 }
 
-.notification-toast {
-  display: flex;
-  align-items: center;
-  background: white;
-  border-radius: 12px;
+.notification {
+  padding: 15px 25px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  width: 300px;
-  max-width: 90vw;
+  transition: all 0.3s ease;
   pointer-events: auto;
-  overflow: hidden;
-  position: relative;
-  animation: slide-in 0.3s ease-out forwards;
 }
 
-.notification-icon {
-  margin-right: 12px;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.notification.success {
+  background-color: #28a745;
 }
 
-.notification-content {
-  flex: 1;
+.notification.error {
+  background-color: #dc3545;
 }
 
-.notification-message {
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  line-height: 1.4;
+.notification.info {
+  background-color: #17a2b8;
 }
 
-.notification-close {
-  background: transparent;
-  border: none;
-  padding: 4px;
-  margin-left: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.notification.warning {
+  background-color: #ffc107;
+  color: #333;
 }
 
-.notification-close:hover {
-  opacity: 1;
+.notification-enter-active,
+.notification-leave-active {
+  transition: all 0.3s ease;
 }
 
-/* 通知类型样式 */
-.notification-success .notification-icon {
-  color: var(--success-color);
-}
-
-.notification-error .notification-icon {
-  color: var(--danger-color);
-}
-
-.notification-warning .notification-icon {
-  color: var(--warning-color);
-}
-
-.notification-info .notification-icon {
-  color: var(--info-color);
-}
-
-/* 通知类型边框 */
-.notification-success {
-  border-left: 4px solid var(--success-color);
-}
-
-.notification-error {
-  border-left: 4px solid var(--danger-color);
-}
-
-.notification-warning {
-  border-left: 4px solid var(--warning-color);
-}
-
-.notification-info {
-  border-left: 4px solid var(--info-color);
-}
-
-/* 通知动画 */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease-out;
-}
-
-.toast-enter-from {
+.notification-enter-from,
+.notification-leave-to {
   opacity: 0;
-  transform: translateX(60px);
-}
-
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(-50px);
-}
-
-@keyframes slide-in {
-  from {
-    transform: translateX(60px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* 移动端适配 */
-@media (max-width: 480px) {
-  .notification-container {
-    right: 10px;
-    left: 10px;
-    align-items: stretch;
-  }
-  
-  .notification-toast {
-    width: 100%;
-  }
+  transform: translateX(30px);
 }
 </style> 

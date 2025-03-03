@@ -1,7 +1,9 @@
 import { ref } from 'vue';
+import { ElMessage } from 'element-plus'
 
 // 通知状态
 const notifications = ref([]);
+let notificationId = 0;
 
 // 通知类型枚举
 export const NotificationType = {
@@ -103,4 +105,109 @@ export function notifyWarning(message, duration = 3500) {
 // 导出通知列表(响应式)
 export function useNotifications() {
   return { notifications };
+}
+
+// 通知服务
+export function useNotification() {
+  return {
+    success(message) {
+      ElMessage({
+        message,
+        type: 'success',
+        duration: 2000
+      })
+    },
+    error(message) {
+      ElMessage({
+        message,
+        type: 'error',
+        duration: 3000
+      })
+    },
+    warning(message) {
+      ElMessage({
+        message,
+        type: 'warning',
+        duration: 3000
+      })
+    },
+    info(message) {
+      ElMessage({
+        message,
+        type: 'info',
+        duration: 2000
+      })
+    }
+  }
+}
+
+// 创建通知组件
+export function createNotificationComponent() {
+  return {
+    name: 'NotificationToast',
+    setup() {
+      return {
+        notifications
+      }
+    },
+    template: `
+      <div class="notifications-container">
+        <transition-group name="notification">
+          <div
+            v-for="notification in notifications"
+            :key="notification.id"
+            :class="['notification', notification.type]"
+          >
+            {{ notification.message }}
+          </div>
+        </transition-group>
+      </div>
+    `,
+    styles: `
+      .notifications-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+      
+      .notification {
+        padding: 15px 25px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        color: white;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+      }
+      
+      .notification.success {
+        background-color: #28a745;
+      }
+      
+      .notification.error {
+        background-color: #dc3545;
+      }
+      
+      .notification.info {
+        background-color: #17a2b8;
+      }
+      
+      .notification.warning {
+        background-color: #ffc107;
+        color: #333;
+      }
+      
+      .notification-enter-active,
+      .notification-leave-active {
+        transition: all 0.3s ease;
+      }
+      
+      .notification-enter-from,
+      .notification-leave-to {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+    `
+  }
 } 

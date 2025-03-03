@@ -1,237 +1,372 @@
 <template>
-  <div v-if="!isEmptyContent" class="register-container">
-    <div class="card">
+  <div class="register-container">
+    <div class="card register-card">
       <div class="card-body">
-        <h5 class="card-title">用户注册</h5>
+        <h4 class="card-title text-center mb-4">用户注册</h4>
         
-        <form id="registration-form" @submit.prevent="handleRegister">
+        <!-- 注册表单 -->
+        <form @submit.prevent="handleRegister" class="register-form">
+          <!-- 用户名输入框 -->
           <div class="form-group">
             <label for="username">用户名</label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="username" 
-              v-model="registerForm.username"
-              placeholder="请输入用户名" 
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-user"></i>
+              </span>
+              <input
+                type="text"
+                id="username"
+                v-model="formData.username"
+                class="form-control"
+                :class="{ 'is-invalid': errors.username }"
+                placeholder="请输入用户名"
+                required
+                @input="validateUsername"
+              >
+            </div>
+            <div class="invalid-feedback" v-if="errors.username">
+              {{ errors.username }}
+            </div>
           </div>
-          
+
+          <!-- 邮箱输入框 -->
           <div class="form-group">
             <label for="email">邮箱</label>
-            <input 
-              type="email" 
-              class="form-control" 
-              id="email" 
-              v-model="registerForm.email"
-              placeholder="请输入邮箱" 
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-envelope"></i>
+              </span>
+              <input
+                type="email"
+                id="email"
+                v-model="formData.email"
+                class="form-control"
+                :class="{ 'is-invalid': errors.email }"
+                placeholder="请输入邮箱"
+                required
+                @input="validateEmail"
+              >
+            </div>
+            <div class="invalid-feedback" v-if="errors.email">
+              {{ errors.email }}
+            </div>
           </div>
-          
+
+          <!-- 密码输入框 -->
           <div class="form-group">
             <label for="password">密码</label>
-            <input 
-              type="password" 
-              class="form-control" 
-              id="password" 
-              v-model="registerForm.password"
-              placeholder="请输入密码" 
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-lock"></i>
+              </span>
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                id="password"
+                v-model="formData.password"
+                class="form-control"
+                :class="{ 'is-invalid': errors.password }"
+                placeholder="请输入密码"
+                required
+                @input="validatePassword"
+              >
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary"
+                @click="togglePasswordVisibility"
+              >
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback" v-if="errors.password">
+              {{ errors.password }}
+            </div>
           </div>
-          
-          <button 
-            type="submit" 
-            class="btn btn-primary btn-block"
+
+          <!-- 确认密码输入框 -->
+          <div class="form-group">
+            <label for="confirmPassword">确认密码</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-lock"></i>
+              </span>
+              <input
+                :type="showConfirmPassword ? 'text' : 'password'"
+                id="confirmPassword"
+                v-model="formData.confirmPassword"
+                class="form-control"
+                :class="{ 'is-invalid': errors.confirmPassword }"
+                placeholder="请再次输入密码"
+                required
+                @input="validateConfirmPassword"
+              >
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary"
+                @click="toggleConfirmPasswordVisibility"
+              >
+                <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback" v-if="errors.confirmPassword">
+              {{ errors.confirmPassword }}
+            </div>
+          </div>
+
+          <!-- 注册按钮 -->
+          <button
+            type="submit"
+            class="btn btn-primary btn-block mt-4"
+            :disabled="isLoading || !isFormValid"
           >
-            <i class="fas fa-user-plus"></i> 注册
+            <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+            {{ isLoading ? '注册中...' : '注册' }}
           </button>
+
+          <!-- 错误提示 -->
+          <div v-if="registerError" class="alert alert-danger mt-3">
+            {{ registerError }}
+          </div>
         </form>
+
+        <!-- 返回登录 -->
+        <div class="mt-3 text-center">
+          <router-link to="/login" class="text-decoration-none">
+            已有账号？返回登录
+          </router-link>
+        </div>
       </div>
     </div>
-  </div>
-  <div v-else class="empty-register-container">
-    <!-- 空白容器，当meta.emptyContent为true时显示 -->
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { register, getCurrentUser } from '../services/userService';
-import { notifySuccess, notifyError } from '../services/notificationService';
+import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { register } from '@/services/userService'
+import { useNotification } from '@/services/notificationService'
 
 // 路由实例
-const router = useRouter();
-const route = useRoute();
-
-// 判断是否显示空内容
-const isEmptyContent = computed(() => {
-  return route.meta.emptyContent || window.location.port === '8087';
-});
+const router = useRouter()
+const notification = useNotification()
 
 // 表单数据
-const registerForm = reactive({
+const formData = reactive({
   username: '',
   email: '',
-  password: ''
-});
+  password: '',
+  confirmPassword: ''
+})
 
-// 处理注册
-async function handleRegister() {
-  try {
-    console.log('尝试注册用户:', registerForm.username);
-    
-    // 调用注册服务
-    const user = await register({
-      username: registerForm.username,
-      email: registerForm.email,
-      password: registerForm.password
-    });
-    
-    console.log('注册成功:', user);
-    
-    // 注册成功提示
-    notifySuccess('注册成功！正在跳转到登录页面');
-    
-    // 清空表单
-    registerForm.username = '';
-    registerForm.email = '';
-    registerForm.password = '';
-    
-    // 注册成功后跳转到登录页面
-    setTimeout(() => {
-      router.push('/login');
-    }, 1000);
-    
-  } catch (error) {
-    // 显示错误消息
-    console.error('注册失败:', error);
-    notifyError(error.message || '注册失败，请稍后再试');
+// 状态变量
+const isLoading = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const registerError = ref('')
+const errors = reactive({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
+})
+
+// 表单验证
+const validateUsername = () => {
+  if (!formData.username) {
+    errors.username = '请输入用户名'
+  } else if (formData.username.length < 3) {
+    errors.username = '用户名至少需要3个字符'
+  } else {
+    errors.username = ''
   }
 }
 
-// 检查用户是否已登录
-onMounted(() => {
-  const currentUser = getCurrentUser();
-  
-  if (currentUser) {
-    // 用户已登录，跳转到仪表盘
-    router.push('/dashboard');
+const validateEmail = () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!formData.email) {
+    errors.email = '请输入邮箱'
+  } else if (!emailRegex.test(formData.email)) {
+    errors.email = '请输入有效的邮箱地址'
+  } else {
+    errors.email = ''
   }
-});
+}
+
+const validatePassword = () => {
+  if (!formData.password) {
+    errors.password = '请输入密码'
+  } else if (formData.password.length < 6) {
+    errors.password = '密码至少需要6个字符'
+  } else {
+    errors.password = ''
+  }
+  validateConfirmPassword()
+}
+
+const validateConfirmPassword = () => {
+  if (!formData.confirmPassword) {
+    errors.confirmPassword = '请确认密码'
+  } else if (formData.confirmPassword !== formData.password) {
+    errors.confirmPassword = '两次输入的密码不一致'
+  } else {
+    errors.confirmPassword = ''
+  }
+}
+
+// 计算属性：表单是否有效
+const isFormValid = computed(() => {
+  return formData.username && 
+         formData.email &&
+         formData.password && 
+         formData.confirmPassword &&
+         !errors.username && 
+         !errors.email &&
+         !errors.password &&
+         !errors.confirmPassword
+})
+
+// 切换密码可见性
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
+const toggleConfirmPasswordVisibility = () => {
+  showConfirmPassword.value = !showConfirmPassword.value
+}
+
+// 处理注册
+const handleRegister = async () => {
+  try {
+    // 重置错误
+    registerError.value = ''
+    
+    // 表单验证
+    validateUsername()
+    validateEmail()
+    validatePassword()
+    validateConfirmPassword()
+    if (!isFormValid.value) return
+
+    // 设置加载状态
+    isLoading.value = true
+
+    // 调用注册API
+    await register({
+      username: formData.username,
+      email: formData.email,
+      password: formData.password
+    })
+
+    // 注册成功提示
+    notification.success('注册成功')
+
+    // 跳转到登录页
+    router.push('/login')
+  } catch (error) {
+    console.error('注册失败:', error)
+    registerError.value = error.message || '注册失败，请稍后重试'
+    notification.error(registerError.value)
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
 .register-container {
   width: 100%;
-  max-width: 450px;
-  margin: 20px auto;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.empty-register-container {
-  width: 100%;
-  height: 100vh;
-  background-color: #f8f9fa;
+.register-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.3s ease;
 }
 
-.card {
-  background: #fff;
-  border: none;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  position: relative;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, #3E78FF, #6C63FF);
-}
-
-.card-body {
-  padding: 30px 40px;
+.register-card:hover {
+  transform: translateY(-5px);
 }
 
 .card-title {
-  color: #333;
+  color: var(--primary-color);
   font-weight: 600;
-  margin-bottom: 30px;
-  font-size: 1.4rem;
-  text-align: center;
-  position: relative;
-}
-
-.card-title::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 25%;
-  width: 50%;
-  height: 2px;
-  background: linear-gradient(90deg, #3E78FF, #6C63FF);
+  margin-bottom: 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 1.5rem;
   position: relative;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 12px;
-  color: #555;
-  font-size: 0.95rem;
+.input-group {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.input-group-text {
+  background: transparent;
+  border-right: none;
+  color: #6c757d;
 }
 
 .form-control {
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  padding: 12px 15px;
-  width: 100%;
+  border-left: none;
+  padding: 0.75rem 1rem;
+  height: auto;
   font-size: 1rem;
-  background-color: rgba(248, 249, 250, 0.5);
+  transition: all 0.3s ease;
 }
 
 .form-control:focus {
-  border-color: #3E78FF;
-  box-shadow: 0 0 0 3px rgba(62, 120, 255, 0.1);
-  outline: none;
-}
-
-.btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  font-weight: 500;
-  text-align: center;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 15px;
+  box-shadow: none;
+  border-color: #ced4da;
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #4365FA, #5D5FEF);
-  color: white;
-  border: none;
+  padding: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
-.btn-primary:hover {
+.btn-primary:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(93, 95, 239, 0.3);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
 }
 
-/* 移动端适配 */
-@media (max-width: 576px) {
-  .card-body {
-    padding: 25px 20px;
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.alert {
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.invalid-feedback {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.register-form {
+  animation: fadeIn 0.5s ease-out;
 }
 </style> 

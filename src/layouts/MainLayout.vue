@@ -1,292 +1,253 @@
 <template>
-  <div class="app-container" :class="{ 'simple-mode': isSimpleMode }">
-    <!-- 浮动健康图标装饰 (减少数量)，在简洁模式下不显示 -->
-    <div v-if="!isSimpleMode" class="floating-icons">
-      <div class="floating-icon" v-for="i in 3" :key="i">
-        <i :class="getRandomIcon()" :style="getRandomStyle()"></i>
+  <div class="main-layout">
+    <!-- 顶部导航栏 -->
+    <nav v-if="isLoggedIn" class="nav-bar">
+      <div class="nav-brand">
+        <router-link to="/dashboard" class="brand-link">
+          <i class="fas fa-heartbeat"></i>
+          <span>HealthyFlow</span>
+        </router-link>
       </div>
-    </div>
-    
-    <!-- 页面内容 -->
-    <div class="content-wrapper">
+      
+      <div class="nav-menu">
+        <router-link to="/dashboard" class="nav-item" :class="{ active: currentRoute === '/dashboard' }">
+          <i class="fas fa-home"></i>
+          <span>仪表盘</span>
+        </router-link>
+        
+        <router-link to="/health-record" class="nav-item" :class="{ active: currentRoute === '/health-record' }">
+          <i class="fas fa-notes-medical"></i>
+          <span>健康记录</span>
+        </router-link>
+        
+        <router-link to="/exercise-plan" class="nav-item" :class="{ active: currentRoute === '/exercise-plan' }">
+          <i class="fas fa-running"></i>
+          <span>运动计划</span>
+        </router-link>
+        
+        <router-link to="/diet-record" class="nav-item" :class="{ active: currentRoute === '/diet-record' }">
+          <i class="fas fa-utensils"></i>
+          <span>饮食记录</span>
+        </router-link>
+        
+        <router-link to="/sleep-analysis" class="nav-item" :class="{ active: currentRoute === '/sleep-analysis' }">
+          <i class="fas fa-bed"></i>
+          <span>睡眠分析</span>
+        </router-link>
+      </div>
+      
+      <div class="nav-user">
+        <el-dropdown trigger="click" @command="handleCommand">
+          <div class="user-info">
+            <img :src="userAvatar" alt="用户头像" class="user-avatar">
+            <span class="user-name">{{ userName }}</span>
+            <i class="el-icon-arrow-down"></i>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="profile">
+                <i class="fas fa-user"></i> 个人资料
+              </el-dropdown-item>
+              <el-dropdown-item command="settings">
+                <i class="fas fa-cog"></i> 设置
+              </el-dropdown-item>
+              <el-dropdown-item divided command="logout">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
       <slot></slot>
-    </div>
-    
-    <!-- 简化页脚，在简洁模式下可选隐藏 -->
-    <footer v-if="!isSimpleMode" class="footer">
-      <p>© {{ currentYear }} 健康管理系统</p>
-    </footer>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getCurrentUser, logout } from '@/services/userService'
 
-const route = useRoute();
+const route = useRoute()
+const router = useRouter()
 
-// 判断是否使用简洁模式（在8089端口）
-const isSimpleMode = computed(() => {
-  return route.meta.simpleMode || window.location.port === '8089';
-});
+// 当前路由路径
+const currentRoute = computed(() => route.path)
 
-// 是否隐藏注册表单（在8090端口）
-const hideRegisterForm = computed(() => {
-  return route.meta.hideRegisterForm || window.location.port === '8090';
-});
+// 用户登录状态
+const isLoggedIn = computed(() => {
+  const currentUser = getCurrentUser()
+  return !!currentUser
+})
 
-// 当前年份
-const currentYear = computed(() => new Date().getFullYear());
+// 用户信息
+const userName = computed(() => {
+  const user = getCurrentUser()
+  return user ? user.name : ''
+})
 
-// 随机健康图标
-const healthIcons = [
-  'fas fa-heartbeat',
-  'fas fa-running',
-  'fas fa-apple-alt',
-  'fas fa-heart',
-  'fas fa-bicycle'
-];
+const userAvatar = computed(() => {
+  const user = getCurrentUser()
+  return user?.avatar || '/images/default-avatar.png'
+})
 
-// 随机生成图标
-function getRandomIcon() {
-  const randomIndex = Math.floor(Math.random() * healthIcons.length);
-  return healthIcons[randomIndex];
-}
-
-// 随机生成浮动图标样式
-function getRandomStyle() {
-  return {
-    left: `${Math.random() * 95}%`,
-    top: `${Math.random() * 90}%`,
-    animationDuration: `${Math.random() * 10 + 10}s`,
-    animationDelay: `${Math.random() * 5}s`,
-    color: `hsla(${Math.random() * 40 + 190}, 70%, 60%, 0.3)`,
-    fontSize: `${Math.random() * 1 + 1.5}rem`
-  };
-}
-
-// 粒子效果背景
-const particles = ref([]);
-
-// 创建粒子(减少数量)
-function createParticles() {
-  particles.value = Array(30).fill().map(() => ({
-    x: Math.random() * window.innerWidth,
-    y: Math.random() * window.innerHeight,
-    size: Math.random() * 5 + 1,
-    speedX: Math.random() * 3 - 1.5,
-    speedY: Math.random() * 3 - 1.5,
-    color: `hsla(${Math.random() * 60 + 190}, 70%, 70%, ${Math.random() * 0.2 + 0.1})`
-  }));
-}
-
-let animationFrameId = null;
-
-// 动画循环
-function animateParticles() {
-  const canvas = document.getElementById('particles-canvas');
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  particles.value.forEach(particle => {
-    ctx.fillStyle = particle.color;
-    ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 更新位置
-    particle.x += particle.speedX;
-    particle.y += particle.speedY;
-    
-    // 边界检测
-    if (particle.x < 0 || particle.x > canvas.width) particle.speedX *= -1;
-    if (particle.y < 0 || particle.y > canvas.height) particle.speedY *= -1;
-  });
-  
-  animationFrameId = requestAnimationFrame(animateParticles);
-}
-
-// 组件挂载时启动粒子效果
-onMounted(() => {
-  createParticles();
-  animateParticles();
-  
-  // 窗口大小变化时重新创建粒子
-  window.addEventListener('resize', createParticles);
-});
-
-// 组件卸载时清理资源
-onBeforeUnmount(() => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
+// 处理下拉菜单命令
+async function handleCommand(command) {
+  switch (command) {
+    case 'profile':
+      router.push('/profile')
+      break
+    case 'settings':
+      router.push('/settings')
+      break
+    case 'logout':
+      await logout()
+      router.push('/login')
+      break
   }
-  window.removeEventListener('resize', createParticles);
-});
+}
 </script>
 
-<style>
-:root {
-  /* 颜色变量 */
-  --primary-color: #3E78FF;
-  --secondary-color: #6C63FF;
-  --accent-color: #5D5FEF;
-  --text-primary: #333;
-  --text-secondary: #666;
-  --bg-primary: #f8f9fa;
-  
-  /* 渐变 */
-  --primary-gradient: linear-gradient(135deg, #3E78FF, #6C63FF);
-  --bg-gradient: radial-gradient(circle at 30% 20%, rgba(120, 180, 255, 0.1) 0%, rgba(255, 255, 255, 0) 40%), 
-                 radial-gradient(circle at 80% 60%, rgba(120, 220, 255, 0.12) 0%, rgba(255, 255, 255, 0) 30%);
-  
-  /* 阴影 */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
-  
-  /* 圆角 */
-  --border-radius: 20px;
-  --border-radius-sm: 10px;
-  
-  /* 卡片背景 */
-  --card-bg: rgba(255, 255, 255, 0.95);
-}
-
-/* 全局样式 */
-body {
-  background: var(--bg-gradient);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--text-primary);
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  background-attachment: fixed;
-  background-color: #f4f7fd;
-}
-
-/* 简洁模式下的样式 */
-.simple-mode {
-  background: white;
-}
-
-.app-container {
+<style scoped>
+.main-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
 }
 
-/* 粒子效果背景 */
-#particles-canvas {
+.nav-bar {
+  background: white;
+  height: 64px;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
+  right: 0;
+  z-index: 100;
 }
 
-/* 内容包装器 */
-.content-wrapper {
-  flex: 1;
+.nav-brand {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0 20px 40px;
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  align-items: center;
 }
 
-/* 浮动图标装饰 */
-.floating-icons {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: #3b82f6;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
-.floating-icon {
-  position: absolute;
-  animation: float 15s infinite ease-in-out;
-  opacity: 0.25;
+.brand-link i {
+  font-size: 1.5rem;
 }
 
-/* 页脚 */
-.footer {
-  text-align: center;
-  padding: 15px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  position: relative;
-  z-index: 1;
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
 }
 
-/* 动画 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #4b5563;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.nav-item.active {
+  color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.nav-item i {
+  font-size: 1.1rem;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-info:hover {
+  background: #f3f4f6;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.main-content {
+  margin-top: 64px;
+  flex: 1;
+  padding: 2rem;
+  background: #f9fafb;
+}
+
+@media (max-width: 1024px) {
+  .nav-bar {
+    padding: 0 1rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .nav-menu {
+    gap: 1rem;
+  }
+
+  .nav-item {
+    padding: 0.5rem;
+  }
+
+  .nav-item span {
+    display: none;
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
+@media (max-width: 640px) {
+  .brand-link span {
+    display: none;
   }
-  25% {
-    transform: translateY(-20px) rotate(5deg);
-  }
-  50% {
-    transform: translateY(10px) rotate(-5deg);
-  }
-  75% {
-    transform: translateY(-15px) rotate(3deg);
+
+  .user-name {
+    display: none;
   }
 }
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .content-wrapper {
-    padding: 0 15px 30px;
-  }
-}
-
-/* 在8090端口上隐藏注册表单 */
-@media screen and (min-width: 1px) {
-  body:has(.app-container) {
-    position: relative;
-    overflow-y: auto;
-  }
-  
-  body:has(.app-container)[data-port="8090"] .register-container,
-  body:has(.app-container)[data-port="8090"] .content-wrapper > div:nth-child(2) {
-    display: none !important;
-  }
-}
-</style>
-
-<script>
-// 在全局范围内设置当前端口
-document.addEventListener('DOMContentLoaded', () => {
-  document.body.setAttribute('data-port', window.location.port);
-});
-</script> 
+</style> 

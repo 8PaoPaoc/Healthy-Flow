@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 医生 -->
+  <path d="M120 90c0 11-9 20-20 20s-20-9-20-20 9-20 20-20 20 9 20 20z" fill="#4F46E5"/>
+  <path d="M95 85h10v10H95z" fill="#fff"/>
+  <path d="M80 110c0-11 9-20 20-20s20 9 20 20v10H80v-10z" fill="#4F46E5"/>
+  
+  <!-- 病人 -->
+  <path d="M160 90c0 11-9 20-20 20s-20-9-20-20 9-20 20-20 20 9 20 20z" fill="#818CF8"/>
+  <path d="M135 85h10v10h-10z" fill="#fff"/>
+  <path d="M120 110c0-11 9-20 20-20s20 9 20 20v10h-40v-10z" fill="#818CF8"/>
+  
+  <!-- 椅子 -->
+  <path d="M140 120h40v20h-40z" fill="#E2E8F0"/>
+  <path d="M150 140h20v20h-20z" fill="#CBD5E1"/>
+  
+  <!-- 医疗符号 -->
+  <circle cx="70" cy="40" r="15" fill="#4F46E5" opacity="0.2"/>
+  <circle cx="180" cy="150" r="10" fill="#818CF8" opacity="0.2"/>
+  <path d="M65 40h10M70 35v10" stroke="#4F46E5" stroke-width="2"/>
+  
+  <!-- 装饰元素 -->
+  <circle cx="200" cy="50" r="5" fill="#4F46E5" opacity="0.1"/>
+  <circle cx="50" cy="150" r="8" fill="#818CF8" opacity="0.1"/>
+  <circle cx="180" cy="30" r="6" fill="#4F46E5" opacity="0.1"/>
+</svg> 
